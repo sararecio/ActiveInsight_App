@@ -1,0 +1,533 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import json
+from datetime import datetime, timedelta
+
+class User:
+    def __init__(self, name, age, weight, height, fitness_goal, step_goal):
+        self.name = name
+        self.age = age
+        self.weight = weight
+        self.height = height
+        self.fitness_goal = fitness_goal
+        self.step_goal = step_goal
+
+    def calculate_bmi(self):
+        try:
+            bmi = self.weight / (self.height / 100) ** 2
+            return round(bmi, 2)
+        except ZeroDivisionError:
+            raise ValueError("Height cannot be zero.")
+
+    def view_profile(self):
+        return f"Name: {self.name}\nAge: {self.age}\nWeight: {self.weight} kg\n" \
+               f"Height: {self.height} cm\nFitness Goal: {self.fitness_goal}\n" \
+               f"Step Goal: {self.step_goal} steps\nBMI: {self.calculate_bmi()}"
+
+class UserActivities(User):
+    def __init__(self, name, age, weight, height, fitness_goal, step_goal):
+        super().__init__(name, age, weight, height, fitness_goal, step_goal)
+        self.activities = []
+
+    def add_activity(self, name, date, duration, calories):
+        self.activities.append({"name": name, "date": date, "duration": duration, "calories": calories})
+
+    def add_steps(self, date, steps):
+        try: 
+            calories_burned = 0.04 * steps
+            self.activities.append({"name": "Steps", "date": date, "duration": 0, "calories": calories_burned})
+            print(f"Steps added successfully for the following date: {date}")
+        except ValueError as e: 
+            print(f"The following error {e} has occurred")
+
+        
+    def merge_sort(self, keys=["date", "calories"]):
+        def compare_items(item1, item2):
+            for key in keys:
+                if item1[key] < item2[key]:
+                    return True
+                elif item1[key] > item2[key]:
+                    return False
+            return False  # If all keys are equal
+    
+        def merge_sort_recursive(data):
+            if len(data) > 1:
+                mid = len(data) // 2
+                left = data[:mid]
+                right = data[mid:]
+    
+                merge_sort_recursive(left)
+                merge_sort_recursive(right)
+    
+                i = j = k = 0
+                while i < len(left) and j < len(right):
+                    if compare_items(left[i], right[j]):
+                        data[k] = left[i]
+                        i += 1
+                    else:
+                        data[k] = right[j]
+                        j += 1
+                    k += 1
+    
+                while i < len(left):
+                    data[k] = left[i]
+                    i += 1
+                    k += 1
+    
+                while j < len(right):
+                    data[k] = right[j]
+                    j += 1
+                    k += 1
+    
+        merge_sort_recursive(self.activities)
+
+    def view_activities(self, keys=["date","calories"]):
+        self.merge_sort()  
+        return self.activities
+
+class UserMeals(User):
+    def __init__(self, name, age, weight, height, fitness_goal, step_goal):
+        super().__init__(name, age, weight, height, fitness_goal, step_goal)
+        self.meals = []
+
+    def add_meal(self, name, calories, date):
+        self.meals.append({"meal": name, "calories": calories, "date": date})
+
+    def quick_sort(self):
+        def quick_sort_recursive(data, low, high):
+            if low < high:
+                pi = partition(data, low, high)
+                quick_sort_recursive(data, low, pi - 1)
+                quick_sort_recursive(data, pi + 1, high)
+    
+        def partition(data, low, high):
+            pivot = data[high]["calories"]
+            i = low - 1
+            for j in range(low, high):
+                if data[j]["calories"] <= pivot:
+                    i += 1
+                    data[i], data[j] = data[j], data[i]
+            data[i + 1], data[high] = data[high], data[i + 1]
+            return i + 1
+    
+        quick_sort_recursive(self.meals, 0, len(self.meals) - 1)
+            
+    def view_meals(self):
+        return self.meals
+
+class AppleHealth:
+    def __init__(self):
+        self.health_data = []
+
+    def fetch_data(self, xml_data=None, file_path=None):
+        import xml.etree.ElementTree as ET
+        if file_path:
+            with open(file_path, "r") as file:
+                xml_data = file.read()
+
+        if not xml_data:
+            print("No XML data provided.")
+            return []
+
+        root = ET.fromstring(xml_data)
+        for record in root.findall('Record'):
+            record_type = record.get('type')
+            start_date = record.get('startDate')
+            value = record.get('value')
+
+            if record_type in ["HKQuantityTypeIdentifierStepCount", "HKQuantityTypeIdentifierActiveEnergyBurned"]:
+                self.health_data.append({
+                    "type": "Steps" if record_type == "HKQuantityTypeIdentifierStepCount" else "Calories Burned",
+                    "date": start_date.split(" ")[0],
+                    "value": int(value),
+                })
+
+        print("Apple Health data parsed successfully.")
+        return self.health_data
+
+    def generate_random_health_data(self, num_entries=30):
+        import random
+        start_date = datetime(2023, 1, 1)
+        generated_data = []
+
+        for entry in range(num_entries):
+            entry_type = random.choice(["Activity", "Meal", "Steps"])
+            entry_date = (start_date + timedelta(days=random.randint(0, 364))).strftime("%Y-%m-%d")
+
+            if entry_type == "Activity":
+                generated_data.append({
+                    "type": "Activity",
+                    "name": random.choice(["Running", "Cycling", "Swimming"]),
+                    "date": entry_date,
+                    "duration": random.randint(20, 120),
+                    "calories": random.randint(100, 1000),
+                })
+            elif entry_type == "Meal":
+                generated_data.append({
+                    "type": "Meal",
+                    "meal_type": random.choice(["Breakfast", "Lunch", "Dinner", "Snack"]),
+                    "date": entry_date,
+                    "calories": random.randint(200, 1500),
+                })
+            elif entry_type == "Steps":
+                generated_data.append({
+                    "type": "Steps",
+                    "date": entry_date,
+                    "steps": random.randint(1000, 20000),
+                })
+
+        self.health_data.extend(generated_data)
+        print(f"Generated {num_entries} random health data entries.")
+        return generated_data
+
+def binary_search_by_date(data, target_date):
+    low, high = 0, len(data) - 1
+    results = []
+    while low <= high:
+        mid = (low + high) // 2
+        if data[mid]["date"] == target_date:
+            results.append(data[mid])
+            left, right = mid - 1, mid + 1
+            while left >= 0 and data[left]["date"] == target_date:
+                results.append(data[left])
+                left -= 1
+            while right < len(data) and data[right]["date"] == target_date:
+                results.append(data[right])
+                right += 1
+            return results
+        elif data[mid]["date"] < target_date:
+            low = mid + 1
+        else:
+            high = mid - 1
+    return results
+
+def linear_search_step_goals(data, step_goal):
+    return [entry for entry in data if entry.get("steps", 0) >= step_goal]
+
+def plot_calories_burned_vs_consumed(activities, meals):
+    df_activities = pd.DataFrame(activities)
+    df_meals = pd.DataFrame(meals)
+
+    if not df_activities.empty:
+        df_activities["date"] = pd.to_datetime(df_activities["date"])
+        df_activities = df_activities.groupby("date").agg({"calories": "sum"}).reset_index()
+    else:
+        df_activities = pd.DataFrame(columns=["date", "calories"])
+
+    if not df_meals.empty:
+        df_meals["date"] = pd.to_datetime(df_meals["date"])
+        df_meals = df_meals.groupby("date").agg({"calories": "sum"}).reset_index()
+    else:
+        df_meals = pd.DataFrame(columns=["date", "calories"])
+
+    df_combined = pd.merge(df_activities, df_meals, on="date", how="outer", suffixes=("_burned", "_consumed"))
+    df_combined = df_combined.fillna(0)
+
+    plt.figure(figsize=(10, 6))
+    bar_width = 0.4
+    index = range(len(df_combined))
+    plt.bar(index, df_combined["calories_consumed"], width=bar_width, label="Calories Consumed")
+    plt.bar([i + bar_width for i in index], df_combined["calories_burned"], width=bar_width, label="Calories Burned")
+    plt.xticks([i + bar_width / 2 for i in index], df_combined["date"].dt.date, rotation=45)
+    plt.xlabel("Date")
+    plt.ylabel("Calories")
+    plt.title("Calories Burned vs. Consumed")
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
+def plot_steps_over_time(activities):
+    df_activities = pd.DataFrame(activities)
+
+    if not df_activities.empty:
+        df_activities = df_activities[df_activities["name"] == "Steps"]
+        df_activities["date"] = pd.to_datetime(df_activities["date"])
+        df_steps = df_activities.groupby("date").agg({"calories": "sum"}).reset_index()
+
+        plt.figure(figsize=(10, 6))
+        plt.plot(df_steps["date"], df_steps["calories"], marker='o')
+        plt.xlabel("Date")
+        plt.ylabel("Steps")
+        plt.title("Steps Over Time")
+        plt.grid()
+        plt.tight_layout()
+        plt.show()
+
+def export_to_csv(data, filename):
+    try:
+        df = pd.DataFrame(data)
+        df.to_csv(filename, index=False)
+        print(f"Data successfully exported to {filename}.")
+    except Exception as e:
+        print(f"Error exporting data to CSV: {e}")
+
+def export_to_json(data, filename):
+    try:
+        with open(filename, "w") as file:
+            json.dump(data, file, indent=4)
+        print(f"Data successfully exported to {filename}.")
+    except Exception as e:
+        print(f"Error exporting data to JSON: {e}")
+
+def save_plot_as_png(plot_function, filename, *args):
+    try:
+        plot_function(*args)
+        plt.savefig(filename, format="png", dpi=300)
+        print(f"The plot has been saved to {filename}.")
+    except Exception as e:
+        print(f"Error saving plot as PNG: {e}")
+
+
+def validate_date(date_str):
+    """following this format (YYYY-MM-DD)."""
+    try:
+        return datetime.strptime(date_str, "%Y-%m-%d")
+    except ValueError:
+        raise ValueError("Date must be in the format YYYY-MM-DD.")
+
+def validate_positive_integer(value, name):
+    try:
+        value = int(value)
+        if value <= 0:
+            raise ValueError(f"{name} must be a positive integer.")
+        return value
+    except ValueError:
+        raise ValueError(f"{name} must be a positive integer.")
+
+def validate_positive_float(value, name):
+    try:
+        value = float(value)
+        if value <= 0:
+            raise ValueError(f"{name} must be a positive number.")
+        return value
+    except ValueError:
+        raise ValueError(f"{name} must be a positive number.")
+
+
+def get_valid_user(users):
+    while True:
+        user_name = input("Enter user name (or type 'exit' to cancel): ").strip()
+        if user_name.lower() == "exit":
+            return None
+        for user in users:
+            if user["activities"].name == user_name:
+                return user
+        print("User not found. Please try again.")
+
+def main():
+    print("\nWelcome to the Health and Fitness Tracker! Please choose one of the options below\n")
+
+    users = []
+    while True:
+        print("\nMain Menu:")
+        print("\n1. Add a new user")
+        print("\n2. Add activities for a user")
+        print("\n3. Add meals for a user")
+        print("\n4. Add steps for a user")
+        print("\n5. Import Apple Health data")
+        print("\n6. View user profile")
+        print("\n7. Generate visualizations")
+        print("\n8. Search activities by date")
+        print("\n9. Find days meeting step goals")
+        print("\n10. Export data")
+        print("\n11. Exit")
+
+        choice = input("\nEnter your choice: \n").strip()
+
+        try:
+            if choice == "1":
+                name = input("Enter user name: ").strip()
+                if not name.isalpha():
+                    raise ValueError("Name must only contain alphabetic characters.")
+
+                age = validate_positive_integer(input("Enter age: "), "Age")
+                weight = validate_positive_float(input("Enter weight (kg): "), "Weight")
+                height = validate_positive_float(input("Enter height (cm): "), "Height")
+                fitness_goal = input("Enter fitness goal: ").strip()
+                step_goal = validate_positive_integer(input("Enter your daily step goal: "), "Step Goal")
+
+                user = {
+                    "activities": UserActivities(name, age, weight, height, fitness_goal, step_goal),
+                    "meals": UserMeals(name, age, weight, height, fitness_goal, step_goal)
+                }
+                users.append(user)
+                print(f"User {name} added successfully!")
+
+            elif choice in ["2", "3", "4", "5", "6", "7", "8", "9", "10"]:
+                user = get_valid_user(users)
+                if user is None:
+                    print("Operation canceled. Returning to the main menu!!")
+                    continue
+                    
+                if choice == "2":
+                    while True:
+                        try:
+                            activity_name = input("Enter activity name: ").strip()
+                            if not activity_name.isalpha():
+                                raise ValueError("Activity name must only contain alphabetic characters.")
+    
+                            date = validate_date(input("Enter activity date (YYYY-MM-DD): ").strip())
+                            duration = validate_positive_integer(input("Enter duration (minutes): "), "Duration")
+                            calories = validate_positive_integer(input("Enter calories burned: "), "Calories Burned")
+    
+                            user["activities"].add_activity(activity_name, date.strftime("%Y-%m-%d"), duration, calories)
+                            print("Activity added successfully!")
+                            user["activities"].merge_sort(keys=["date", "calories"])
+                            if input("Add another activity? (y/n): ").lower() != "y":
+                                break
+                        except ValueError as e:
+                            print(f"Error: {e}")
+            
+                elif choice == "3":
+                    while True:
+                        try:
+                            meal_name = input("Enter meal name: ").strip()
+                            if not meal_name.isalpha():
+                                raise ValueError("Meal name must only contain alphabetic characters.")
+        
+                            date = validate_date(input("Enter meal date (YYYY-MM-DD): ").strip())
+                            calories = validate_positive_integer(input("Enter calories: "), "Calories")
+        
+                            user["meals"].add_meal(meal_name, calories, date.strftime("%Y-%m-%d"))
+                            print("Meal added successfully!")
+                            user["meals"].quick_sort()
+                            if input("Add another meal? (y/n): ").lower() != "y":
+                                break
+                        except ValueError as e:
+                            print(f"Error: {e}")
+    
+    
+                elif choice == "4":
+                    while True: 
+                        try: 
+                            date = validate_date(input("Enter step date (YYYY-MM-DD): ").strip())
+                            steps = validate_positive_integer(input("Enter the number of steps: "), "Steps")
+                            user["activities"].add_steps(date.strftime("%Y-%m-%d"), steps)
+                            print("Your steps have been added successfully!")
+                            user["activities"].merge_sort(keys=["date", "calories"])
+                            if input("Add more steps? (y/n): ").lower() != "y":
+                                break
+                        except ValueError as e: 
+                            print(f"Error: {e}")
+    
+                elif choice == "5":
+                    apple_health = AppleHealth()
+                    try:
+                        print("Would you like to (1) import from XML or (2) generate random data entries?")
+                        option = input("Enter your choice: ").strip()
+                        if option == "1":
+                            file_path = input("Enter the XML file path: ").strip()
+                            health_data = apple_health.fetch_data(file_path=file_path)
+        
+                        elif option == "2":
+                            num_entries = validate_positive_integer(input("Enter the number of random entries that you would like to generate: "), "Number of entries")
+                            health_data = apple_health.generate_random_health_data(num_entries=num_entries)
+        
+                        else:
+                            print("Invalid option has been selected.")
+                            continue
+        
+                        for record in apple_health.health_data:
+                            if record["type"] == "Activity":
+                                user["activities"].add_activity(record["name"], record["date"], record.get("duration", 0), record["calories"])
+                            elif record["type"] == "Steps":
+                                user["activities"].add_activity("Steps", record["date"], 0, record["steps"])
+                            elif record["type"] == "Meal":
+                                user["meals"].add_meal(record["meal_type"], record["calories"], record["date"])
+        
+                        print("Now sorting activities and meals")
+                        user["activities"].merge_sort(keys=["date", "calories"])
+                        user["meals"].quick_sort()
+        
+                        print("Health data has been added successfully!")
+                    except Exception as e:
+                        print(f"Error: {e}")
+    
+                elif choice == "6":
+                    print("\nUser Profile:")
+                    print(user["activities"].view_profile())
+                    print("\nActivities:")
+                    print(user["activities"].view_activities())
+                    print("\nMeals:")
+                    print(user["meals"].view_meals())
+    
+                elif choice == "7":
+                    try:
+                        plot_calories_burned_vs_consumed(user["activities"].view_activities(), user["meals"].view_meals())
+                        plot_steps_over_time(user["activities"].view_activities())
+                    except Exception as e:
+                        print(f"Error: {e}")
+    
+                elif choice == "8":
+                    target_date = validate_date(input("Enter the date to search for (YYYY-MM-DD): ").strip()).strftime("%Y-%m-%d")
+                    user["activities"].merge_sort(keys=["date","calories"])
+                    sorted_activities = user["activities"].view_activities()
+                    results = binary_search_by_date(sorted_activities, target_date)
+                    print(f"Activities on {target_date}: {results}")
+                
+                elif choice == "9":
+                    step_filter = validate_positive_integer(input("Enter step  to filter by: "), "Step Goal")
+                    activities = user["activities"].view_activities()
+                    activities_with_steps = [activity for activity in activities if activity.get("name") == "Steps"]
+                    results = linear_search_step_goals(activities_with_steps, step_filter)
+                    if results:
+                        print(f"Days that meet the step goal: {results}")
+                    else:
+                        print("No days met the step goal, keep going! :(")
+
+                elif choice == "10":
+                    try:
+                        print("\nExport Options:")
+                        print("1. Export activities to CSV")
+                        print("2. Export meals to CSV")
+                        print("3. Export activities to JSON")
+                        print("4. Export meals to JSON")
+                        print("5. Export Calories Plot to PNG")
+                        print("6. Export Steps Plot to PNG")
+                        print("7. Exit Export Options")
+        
+                        while True:
+                            export_choice = input("Enter your export choice: ")
+                            if export_choice == "1":
+                                file_name = input("Enter file name (with .csv extension): ").strip()
+                                export_to_csv(user["activities"].view_activities(), file_name)
+                            elif export_choice == "2":
+                                file_name = input("Enter file name (with .csv extension): ").strip()
+                                export_to_csv(user["meals"].view_meals(), file_name)
+                            elif export_choice == "3":
+                                file_name = input("Enter file name (with .json extension): ").strip()
+                                export_to_json(user["activities"].view_activities(), file_name)
+                            elif export_choice == "4":
+                                file_name = input("Enter file name (with .json extension): ").strip()
+                                export_to_json(user["meals"].view_meals(), file_name)
+                            elif export_choice == "5":
+                                file_name = input("Enter file name (with .png extension): ").strip()
+                                save_plot_as_png(plot_calories_burned_vs_consumed, file_name,
+                                                 user["activities"].view_activities(), user["meals"].view_meals())
+                            elif export_choice == "6":
+                                file_name = input("Enter file name (with .png extension): ").strip()
+                                save_plot_as_png(plot_steps_over_time, file_name,
+                                                 user["activities"].view_activities())
+                            elif export_choice == "7":
+                                print("Exiting Export Options.")
+                                break
+                            else:
+                                print("Invalid choice. Please try again.")
+                    except Exception as e:
+                        print(f"Error: {e}")
+    
+            elif choice == "11":
+                print("Great job! Keep it up! See you next time :)")
+                break
+
+            else:
+                print("Invalid choice. Please try again.")
+
+        except Exception as e:
+            print(f"Error: {e}")
+
+
+if __name__ == "__main__":
+    main()
+
+                                
